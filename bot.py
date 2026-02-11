@@ -15,7 +15,7 @@ from telegram.ext import (
 
 # ================== CONFIG ==================
 BOT_TOKEN = "BOT_TOKEN"
-SUPPORT_GROUP_ID = -1003883601919 # <-- replace with your support group ID
+SUPPORT_GROUP_ID = -1003809204938 # <-- replace with your support group ID
 # ============================================
 
 logging.basicConfig(level=logging.INFO)
