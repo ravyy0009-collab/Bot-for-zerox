@@ -11,7 +11,7 @@ from telegram.ext import (
 )
 
 # ================== CONFIG ==================
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv("8527242790:AAEjwurN9fG3nGK9IfTtgwFd7AKHNyAyGjY")
 SUPPORT_GROUP_ID = -1003809204938  # Your support group ID
 # ============================================
 
