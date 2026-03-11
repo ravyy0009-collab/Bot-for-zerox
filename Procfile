@@ -1,2 +1,2 @@
-cd /path/to/goldberg-support-system
-touch Procfile
+support: python support_bot.py
+ai: python AI_BOT.py
