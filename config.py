@@ -1,8 +1,10 @@
+from dotenv import load_dotenv
 import os
 
-SUPPORT_BOT_TOKEN = os.getenv("8501292423:AAFezRaRqrOddvwYAwpM04u6riVPHzREF7s")
-AI_BOT_TOKEN = os.getenv("8777779022:AAHP_ryXse-Rcjs3bV-4cEc0Wulyv04A8ao")
+load_dotenv()  # only needed if using .env file locally
 
-SUPPORT_GROUP_ID = int(os.getenv("-5236741786"))
+SUPPORT_BOT_TOKEN = os.getenv("SUPPORT_BOT_TOKEN")
+AI_BOT_TOKEN = os.getenv("AI_BOT_TOKEN")
 
-OPENROUTER_API_KEY = os.getenv("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")
+SUPPORT_GROUP_ID = int(os.getenv("SUPPORT_GROUP_ID"))  # ✅ Correct
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
