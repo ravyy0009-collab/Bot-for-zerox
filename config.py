@@ -1,0 +1,8 @@
+import os
+
+SUPPORT_BOT_TOKEN = os.getenv("8501292423:AAFezRaRqrOddvwYAwpM04u6riVPHzREF7s")
+AI_BOT_TOKEN = os.getenv("8777779022:AAHP_ryXse-Rcjs3bV-4cEc0Wulyv04A8ao")
+
+SUPPORT_GROUP_ID = int(os.getenv("-5236741786"))
+
+OPENROUTER_API_KEY = os.getenv("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")
