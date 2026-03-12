@@ -1,59 +1,55 @@
+import asyncio
 from telegram import Update
-from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes
+from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 from config import SUPPORT_BOT_TOKEN, SUPPORT_GROUP_ID
-from ticket_manager import generate_ticket, get_user, resolve_ticket
-from utils import detect_category, detect_user_type
+from ticket_manager import generate_ticket
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if update.effective_chat.type != "private":
+        return
+
     user = update.message.from_user
-    text = update.message.text
+    text = update.message.text or ""
 
     ticket = generate_ticket(user.id)
 
-    category = detect_category(text)
-    user_type = detect_user_type(text)
-
     msg = f"""
-🎫 Ticket #{ticket}
+🎫 Ticket: {ticket}
 
 User: {user.first_name}
 UserID: {user.id}
-
-User Type: {user_type}
-Category: {category}
 
 Message:
 {text}
 """
 
-    await context.bot.send_message(SUPPORT_GROUP_ID, msg)
+    # forward text
+    if text:
+        await context.bot.send_message(SUPPORT_GROUP_ID, msg)
 
-    await update.message.reply_text(
-        f"OK {user.first_name}, message received.\nTicket: {ticket}\nPlease wait for reply.\n\n— Team Goldberg"
-    )
+    # forward photo
+    if update.message.photo:
+        await context.bot.send_photo(
+            SUPPORT_GROUP_ID,
+            update.message.photo[-1].file_id,
+            caption=msg
+        )
 
-async def reply_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    ticket = context.args[0]
-    reply_text = " ".join(context.args[1:])
-    user_id = get_user(ticket)
+    # confirmation message
+    sent = await update.message.reply_text("Message Sent ✓")
 
-    if not user_id:
-        await update.message.reply_text("Ticket not found.")
-        return
+    await asyncio.sleep(3)
 
-    await context.bot.send_message(user_id, reply_text)
-    await update.message.reply_text(f"Reply sent to ticket {ticket}")
+    try:
+        await sent.delete()
+    except:
+        pass
 
-async def resolved_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    ticket = context.args[0]
-    resolve_ticket(ticket)
-    await update.message.reply_text(f"✅ Ticket {ticket} resolved")
 
 app = ApplicationBuilder().token(SUPPORT_BOT_TOKEN).build()
 
-app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
-app.add_handler(CommandHandler("reply", reply_cmd))
-app.add_handler(CommandHandler("resolved", resolved_cmd))
+app.add_handler(MessageHandler(filters.ALL & filters.ChatType.PRIVATE, handle_message))
 
 print("Support Bot Running...")
 app.run_polling()
