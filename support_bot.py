@@ -12,12 +12,17 @@ from telegram.ext import (
 from config import SUPPORT_BOT_TOKEN, SUPPORT_GROUP_ID
 
 
-tickets = {}
-daily_counter = {}
+tickets = {}                 # ticket_id -> user_id
+user_active_ticket = {}      # user_id -> ticket_id
+daily_counter = {}           # daily ticket counter
 
 
-# Ticket generator
+# Generate ticket
 def generate_ticket(user_id):
+
+    if user_id in user_active_ticket:
+        return user_active_ticket[user_id]
+
     now = datetime.now()
     key = now.strftime("%y%d%m")
 
@@ -27,15 +32,13 @@ def generate_ticket(user_id):
         daily_counter[key] += 1
 
     number = str(daily_counter[key]).zfill(2)
+
     ticket = f"{key}{number}"
 
     tickets[ticket] = user_id
+    user_active_ticket[user_id] = ticket
 
     return ticket
-
-
-def get_user(ticket):
-    return tickets.get(ticket)
 
 
 # Start command
@@ -45,13 +48,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 Welcome 👋
 
 Send your question or query.
-Joe will reply soon.❤️
+JOE will reply soon.
 """
 
     await update.message.reply_text(msg)
 
 
-# User message handler
+# Handle user messages
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if update.effective_chat.type != "private":
@@ -65,34 +68,33 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = f"""
 🎫 Ticket: {ticket}
 
-👤 User: {user.first_name}
-🆔 UserID: {user.id}
+User: {user.first_name}
+UserID: {user.id}
 
-💬 Message:
+Message:
 {text}
 """
 
-    # text message
+    # send text
     if text:
         await context.bot.send_message(SUPPORT_GROUP_ID, msg)
 
-    # photo
+    # send photo
     if update.message.photo:
         await context.bot.send_photo(
             SUPPORT_GROUP_ID,
             photo=update.message.photo[-1].file_id,
-            caption=msg,
+            caption=msg
         )
 
-    # document
+    # send document
     if update.message.document:
         await context.bot.send_document(
             SUPPORT_GROUP_ID,
             document=update.message.document.file_id,
-            caption=msg,
+            caption=msg
         )
 
-    # confirmation message
     sent = await update.message.reply_text("Message Sent ✓")
 
     await asyncio.sleep(3)
@@ -106,30 +108,92 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Reply command
 async def reply_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if update.effective_chat.id != SUPPORT_GROUP_ID:
+        return
+
     if len(context.args) < 2:
         await update.message.reply_text("Usage: /reply <ticket> <message>")
         return
 
     ticket = context.args[0]
-    reply_text = " ".join(context.args[1:])
+    message = " ".join(context.args[1:])
 
-    user_id = get_user(ticket)
+    user_id = tickets.get(ticket)
 
     if not user_id:
         await update.message.reply_text("Ticket not found")
         return
 
-    await context.bot.send_message(user_id, reply_text)
+    await context.bot.send_message(user_id, message)
 
     await update.message.reply_text(f"Reply sent to ticket {ticket}")
 
 
-# Bot start
+# Close ticket
+async def close_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if update.effective_chat.id != SUPPORT_GROUP_ID:
+        return
+
+    if len(context.args) < 1:
+        await update.message.reply_text("Usage: /close <ticket>")
+        return
+
+    ticket = context.args[0]
+
+    user_id = tickets.get(ticket)
+
+    if not user_id:
+        await update.message.reply_text("Ticket not found")
+        return
+
+    user_active_ticket.pop(user_id, None)
+
+    await context.bot.send_message(
+        user_id,
+        f"Your ticket {ticket} has been closed.\nIf you need further help, please send a new message."
+    )
+
+    await update.message.reply_text(f"Ticket {ticket} closed")
+
+
+# Resolve ticket
+async def resolved_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if update.effective_chat.id != SUPPORT_GROUP_ID:
+        return
+
+    if len(context.args) < 1:
+        await update.message.reply_text("Usage: /resolved <ticket>")
+        return
+
+    ticket = context.args[0]
+
+    user_id = tickets.get(ticket)
+
+    if not user_id:
+        await update.message.reply_text("Ticket not found")
+        return
+
+    user_active_ticket.pop(user_id, None)
+
+    await context.bot.send_message(
+        user_id,
+        f"Your issue for ticket {ticket} has been resolved.\nThank you for contacting us."
+    )
+
+    await update.message.reply_text(f"Ticket {ticket} resolved")
+
+
+# Start bot
 app = ApplicationBuilder().token(SUPPORT_BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.ALL & filters.ChatType.PRIVATE, handle_message))
+
 app.add_handler(CommandHandler("reply", reply_cmd))
+app.add_handler(CommandHandler("close", close_cmd))
+app.add_handler(CommandHandler("resolved", resolved_cmd))
 
 print("Support Bot Running...")
 
